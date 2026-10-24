@@ -19,20 +19,59 @@
 <meta name="twitter:description" content="SMS Dashboard - 5 Phones | deployed with HTMLaunch">
 <meta name="twitter:image" content="https://s.wordpress.com/mshots/v1/https%3A%2F%2FMacthesmalwa.github.io%2Fsms-dashboard-5-phones%2F?w=1200&h=630">
 <meta name="twitter:image:alt" content="SMS Dashboard - 5 Phones">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SMS Dashboard - 5 Phones</title>
-<style> body{font-family:Arial;padding:10px;background:#a51414} .phone{border-left:5px solid #000;padding:10px;margin:10px 0;background:white} .papa{border-color:blue} .mama{border-color:pink} .sis{border-color:purple} .grandma{border-color:green} .myphone{border-color:orange} input,select{padding:8px;margin:5px}</style>
+<style>body{font-family:Arial;padding:12px;background:#f5f5f5} .phone{border-left:5px solid #333;padding:10px;margin:10px 0;background:white;border-radius:5px} .papa{border-color:#2563eb} .mama{border-color:#ec4899} .sis{border-color:#9333ea} .grandma{border-color:#16a34a} .myphone{border-color:#f59e0b} input,select,button{padding:10px;margin:5px;width:90%;max-width:300px} button{background:#000;color:white;border:0;border-radius:5px}</style>
 </head><body>
-<h2>SMS Dashboard - 5 Phones</h2>
-<div id="login"><input id="email" placeholder="Email"><input id="pass" type="password" placeholder="Password"><button onclick="login()">Login</button></div>
-<div id="dash" style="display:none"><select id="filter" onchange="load()"><option value="">All Phones</option><option value="papa phone">Papa</option><option value="mama phone">Mama</option><option value="sis phone">Sis</option><option value="grandma phone">Grandma</option><option value="myphone">MyPhone</option></select> <button onclick="load()">Refresh</button><div id="msgs"></div></div>
+<h2>📱 SMS Dashboard - 5 Phones</h2>
+<div id="loginBox"><input id="email" type="email" placeholder="Email"><br><input id="pass" type="password" placeholder="Password"><br><button id="loginBtn">LOGIN</button><p id="err" style="color:red"></p></div>
+<div id="dash" style="display:none"><h3>Messages</h3><select id="filter"><option value="">All Phones</option><option value="papa phone">Papa</option><option value="mama phone">Mama</option><option value="sis phone">Sis</option><option value="grandma phone">Grandma</option><option value="myphone">MyPhone</option></select> <button id="refreshBtn">Refresh</button><div id="msgs">Loading...</div></div>
+
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {getAuth, signInWithEmailAndPassword, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {getFirestore, collection, query, orderBy, limit, getDocs} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 const firebaseConfig={apiKey:"AIzaSyDcuKtV0g7hhxUat_cJIwo_UiBHt5K9Cxk",authDomain:"sms-dashboard-38d9c.firebaseapp.com",projectId:"sms-dashboard-38d9c",storageBucket:"sms-dashboard-38d9c.firebasestorage.app",messagingSenderId:"539771188108",appId:"1:539771188108:web:33af8dc0f1da1bb1109ca9"};
-const app=initializeApp(firebaseConfig); const auth=getAuth(app); const db=getFirestore(app);
-window.login=()=>{signInWithEmailAndPassword(auth,email.value,pass.value).catch(e=>alert(e.message))};
-onAuthStateChanged(auth,u=>{if(u){login.style.display='none';dash.style.display='block';load()}});
-window.load=async()=>{const q=query(collection(db,"messages"),orderBy("timestamp","desc"),limit(100));const snap=await getDocs(q);let html="";snap.forEach(d=>{let m=d.data();if(filter.value && m.phoneId!=filter.value) return;html+=`<div class="phone ${m.phoneId.replace(' ','')}"><b>${m.phoneId}</b> | From: ${m.from}<br>${m.message}<br><small>${m.timestamp?.toDate?.()||'just now'}</small></div>`});msgs.innerHTML=html||"No SMS yet";};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+
+const emailEl=document.getElementById('email');
+const passEl=document.getElementById('pass');
+const errEl=document.getElementById('err');
+const loginBox=document.getElementById('loginBox');
+const dash=document.getElementById('dash');
+
+document.getElementById('loginBtn').onclick=async()=>{
+  errEl.textContent="Logging in...";
+  try{
+    await signInWithEmailAndPassword(auth,emailEl.value.trim(),passEl.value);
+  }catch(e){
+    errEl.textContent=e.code+" : "+e.message;
+  }
+};
+
+onAuthStateChanged(auth,u=>{
+  if(u){ loginBox.style.display='none'; dash.style.display='block'; load(); }
+});
+
+window.load=async()=>{
+  try{
+    const q=query(collection(db,"messages"),orderBy("timestamp","desc"),limit(100));
+    const snap=await getDocs(q);
+    let html="";
+    const filterVal=document.getElementById('filter').value;
+    snap.forEach(d=>{
+      let m=d.data();
+      if(filterVal && m.phoneId!=filterVal) return;
+      let cls=(m.phoneId||"").split(" ")[0];
+      html+=`<div class="phone ${cls}"><b>${m.phoneId}</b> | From: ${m.from}<br>${m.message}<br><small>${m.timestamp?.toDate?.toLocaleString()||'just now'}</small></div>`;
+    });
+    document.getElementById('msgs').innerHTML=html||"No SMS yet - Install APK on phones";
+  }catch(e){ document.getElementById('msgs').innerHTML="Error: "+e.message; }
+};
+
+document.getElementById('refreshBtn').onclick=load;
+document.getElementById('filter').onchange=load;
 </script></body></html>
